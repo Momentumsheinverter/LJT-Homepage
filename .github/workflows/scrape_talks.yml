@@ -1,39 +1,49 @@
-name: Scrape Talk Locations
+# Workflow for building and deploying the Academic Pages Jekyll site to GitHub Pages
+name: Deploy Academic Pages template site to Pages
 
 on:
   push:
-    paths:
-      - 'talks/**'
-      - '_talks/**'
-      - 'talkmap.ipynb'
+    branches: ["master"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write           # This workflow pushes to the repository
-
+  deploy:
+    runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.12'   # Specify the Python version you need
-
-    - name: Install dependencies
-      run: |
-        pip install jupyter pandas requests beautifulsoup4 geopy  # Add other dependencies as needed
-        pip install getorg --upgrade
-
-    - name: Run Jupyter Notebook
-      run: |
-        jupyter nbconvert --to notebook --execute talkmap.ipynb --output talkmap_out.ipynb
-
-    - name: Commit changes
-      run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-        git add .
-        git commit -m "Automated update of talk locations" || echo "No changes to commit"
-        git push
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: Setup Ruby, JRuby and TruffleRuby
+        uses: ruby/setup-ruby@v1.328.0
+        with:
+          ruby-version: '3.1'
+          bundler-cache: true
+          cache-version: 0
+      - name: Install UglifyJS
+        run: npm install -g uglify-js
+      - name: Minify JS files
+        run: |
+          uglifyjs assets/js/plugins/jquery.greedy-navigation.js assets/js/_main.js assets/js/theme.js -c -m -o assets/js/main.min.js
+      - name: Build with Jekyll
+        run: bundle exec jekyll build --baseurl "/LJT-Homepage"
+        env:
+          JEKYLL_ENV: production
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./_site
+          publish_branch: gh-pages
+          force_orphan: true
