@@ -1,19 +1,31 @@
-# Deploy workflow (trivial probe)
-name: Cleanup bad PR
+# Workflow for building the Academic Pages Jekyll site (build probe)
+name: Build Academic Pages template site
 
 on:
-  pull_request_target:
-    types: [opened, reopened]
+  push:
+    branches: ["master"]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
-  close-pr:
-    permissions:
-      pull-requests: write
-    runs-on: ubuntu-latest
-    if: "contains(github.event.pull_request.body, 'by deleting this comment block') || github.event.pull_request.body == ''"
+  build:
+    runs-on: ubuntu-24.04
     steps:
-      - name: test secret ref
-        run: echo "${{ secrets.GITHUB_TOKEN }}"
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+      - name: Setup Ruby, JRuby and TruffleRuby
+        uses: ruby/setup-ruby@v1.328.0
+        with:
+          ruby-version: '3.1'
+          bundler-cache: true
+          cache-version: 0
+      - name: Build with Jekyll
+        run: bundle exec jekyll build --baseurl "/LJT-Homepage"
+        env:
+          JEKYLL_ENV: production
