@@ -1,6 +1,5 @@
 // Span Syntax
 // ===========
-@use 'sass:math';
 
 // Span [mixin]
 // ------------
@@ -146,7 +145,7 @@
     @warn "(#{type-of($n)}) #{$n} is not a valid span.";
   } @else if unitless($n) {
     $context: susy-sum($columns, $gutters, if(is-split($span), wide, narrow));
-    $spread: if(is-inside($span), $spread or wide, $spread);
+    $spread: if(is-split($span), $spread or wide, $spread);
     $span-sum: susy($n, $location, $columns, $gutters, $spread);
 
     $_math: susy-get(math, $span);
@@ -154,7 +153,7 @@
     @if $_math == static {
       $width: $span-sum * valid-column-math($_math, $_column-width);
     } @else {
-      $width: percentage(math.div($span-sum, $context));
+      $width: percentage(($span-sum / $context));
     }
   } @else {
     $width: $n;
